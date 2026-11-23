@@ -1,5 +1,9 @@
-# REFRACT CI — 1단계: 자동 테스트
-# push(main)·PR·수동 실행 때 Unity EditMode 테스트를 돌린다.
+# REFRACT CI — 자동 테스트
+# push(main)·PR·수동 실행 때 테스트를 돌린다.
+#
+#  ⚡ logic-tests : Unity 없이 dotnet으로 Core 로직 테스트 (라이선스 불필요, 약 1분)  ← 통과 필수
+#  🎮 unity-tests : Unity 에디터(GameCI)로 같은 테스트 실행 (Personal 라이선스 활성화 조사 중 → 실험 단계)
+#
 # (WebGL 빌드 Job은 다음 단계에서 추가)
 name: CI
 
@@ -14,15 +18,66 @@ permissions:
   contents: read
   checks: write           # 테스트 결과를 GitHub Checks 화면에 표시하기 위해 필요
 
-# Unity Personal 라이선스는 계정당 좌석이 제한되므로 동시에 여러 실행이 돌지 않게 한다
-concurrency:
-  group: unity-license
-  cancel-in-progress: false
-
 jobs:
-  test:
-    name: EditMode Tests
+  # ───────────── ⚡ Fast lane: Unity 없이 로직 테스트 ─────────────
+  logic-tests:
+    name: Logic Tests (dotnet)
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Run tests
+        run: >
+          dotnet test Tests.Dotnet/Refract.Tests.Dotnet.csproj
+          --logger "console;verbosity=normal"
+          --logger "trx;LogFileName=logic-tests.trx"
+          --results-directory test-results
+
+      # 테스트 결과 요약을 Actions 실행 화면(Summary)에 표시
+      - name: Write summary
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import glob, os, xml.etree.ElementTree as ET
+          ns = {'t': 'http://microsoft.com/schemas/VisualStudio/TeamTest/2010'}
+          lines = ['## ⚡ Logic Tests (dotnet)', '']
+          for path in glob.glob('test-results/*.trx'):
+              root = ET.parse(path).getroot()
+              c = root.find('.//t:Counters', ns).attrib
+              lines.append(f"**Total {c['total']} · Passed {c['passed']} · Failed {c['failed']}**")
+              lines.append('')
+              lines.append('| Result | Test |')
+              lines.append('|---|---|')
+              for r in root.findall('.//t:UnitTestResult', ns):
+                  icon = '✅' if r.get('outcome') == 'Passed' else '❌'
+                  lines.append(f"| {icon} | {r.get('testName')} |")
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as f:
+              f.write('\n'.join(lines) + '\n')
+          PY
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logic-test-results
+          path: test-results
+
+  # ───────────── 🎮 Unity lane: Unity 에디터로 테스트 (실험) ─────────────
+  unity-tests:
+    name: Unity EditMode Tests (experimental)
+    runs-on: ubuntu-latest
+    # Personal 라이선스 활성화 문제를 조사 중이므로, 실패해도 전체 CI를 실패로 만들지 않는다
+    continue-on-error: true
+    # Personal 라이선스는 좌석이 제한되므로 동시에 여러 실행이 돌지 않게 한다
+    concurrency:
+      group: unity-license
+      cancel-in-progress: false
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,20 +96,19 @@ jobs:
       - name: Run EditMode tests
         id: tests
         uses: game-ci/unity-test-runner@v4
-        # Unity Personal: .ulf 파일 대신 계정 로그인(이메일+비밀번호)으로 실행 시점에 활성화한다.
-        # (Unity가 Personal 라이선스의 수동 .ulf 활성화를 더 이상 지원하지 않음)
+        # Unity Personal: .ulf 파일 대신 계정 로그인(이메일+비밀번호)으로 실행 시점에 활성화
         env:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           testMode: editmode
           githubToken: ${{ secrets.GITHUB_TOKEN }}
-          checkName: EditMode Test Results
+          checkName: Unity EditMode Test Results
 
-      # 실패해도 결과 파일은 남겨서 원인을 볼 수 있게 한다
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: unity-test-results
           path: ${{ steps.tests.outputs.artifactsPath }}
+          if-no-files-found: ignore

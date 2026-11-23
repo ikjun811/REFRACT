@@ -112,3 +112,8 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# REFRACT: Unity 없이 도는 dotnet 테스트 프로젝트(CI Fast lane)는 커밋하고, 빌드 결과물은 제외
+!/Tests.Dotnet/*.csproj
+/Tests.Dotnet/bin/
+/Tests.Dotnet/obj/
