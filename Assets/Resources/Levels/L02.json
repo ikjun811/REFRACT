@@ -1,0 +1,17 @@
+{
+  "id": "L02",
+  "name": "Detour",
+  "width": 6,
+  "height": 6,
+  "mirrors": 2,
+  "pieces": [
+    { "type": "Emitter",  "x": 0, "y": 1, "dir": "Right" },
+    { "type": "Wall",     "x": 4, "y": 1 },
+    { "type": "Wall",     "x": 1, "y": 3 },
+    { "type": "Receiver", "x": 5, "y": 4 }
+  ],
+  "solution": [
+    { "type": "Mirror", "x": 2, "y": 1, "orientation": "Slash" },
+    { "type": "Mirror", "x": 2, "y": 4, "orientation": "Slash" }
+  ]
+}

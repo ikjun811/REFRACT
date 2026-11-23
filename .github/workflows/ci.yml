@@ -1,0 +1,60 @@
+# REFRACT CI — 1단계: 자동 테스트
+# push(main)·PR·수동 실행 때 Unity EditMode 테스트를 돌린다.
+# (WebGL 빌드 Job은 다음 단계에서 추가)
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}   # Actions 탭에서 수동 실행 버튼
+
+permissions:
+  contents: read
+  checks: write           # 테스트 결과를 GitHub Checks 화면에 표시하기 위해 필요
+
+# Unity Personal 라이선스는 계정당 좌석이 제한되므로 동시에 여러 실행이 돌지 않게 한다
+concurrency:
+  group: unity-license
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: EditMode Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true       # 프로젝트 .gitattributes가 png 등을 LFS로 관리하므로 필요
+
+      # Library 폴더 캐시: 없으면 매번 에셋 임포트부터 다시 해서 매우 느려진다
+      - name: Cache Library
+        uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: |
+            Library-
+
+      - name: Run EditMode tests
+        id: tests
+        uses: game-ci/unity-test-runner@v4
+        # Unity Personal: .ulf 파일 대신 계정 로그인(이메일+비밀번호)으로 실행 시점에 활성화한다.
+        # (Unity가 Personal 라이선스의 수동 .ulf 활성화를 더 이상 지원하지 않음)
+        env:
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          testMode: editmode
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          checkName: EditMode Test Results
+
+      # 실패해도 결과 파일은 남겨서 원인을 볼 수 있게 한다
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: ${{ steps.tests.outputs.artifactsPath }}

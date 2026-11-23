@@ -1,0 +1,4 @@
+<!-- WebGL 빌드의 코드 스트리핑이 JSON 역직렬화용 필드를 제거하지 않도록 보존 -->
+<linker>
+  <assembly fullname="Refract.Core" preserve="all" />
+</linker>

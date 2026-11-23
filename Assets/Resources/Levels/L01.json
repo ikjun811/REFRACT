@@ -1,0 +1,14 @@
+{
+  "id": "L01",
+  "name": "First Light",
+  "width": 5,
+  "height": 5,
+  "mirrors": 1,
+  "pieces": [
+    { "type": "Emitter",  "x": 0, "y": 2, "dir": "Right" },
+    { "type": "Receiver", "x": 4, "y": 4 }
+  ],
+  "solution": [
+    { "type": "Mirror", "x": 4, "y": 2, "orientation": "Slash" }
+  ]
+}
