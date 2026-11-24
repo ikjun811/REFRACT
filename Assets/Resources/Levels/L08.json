@@ -1,0 +1,22 @@
+{
+  "id": "L08",
+  "name": "Prism Room",
+  "width": 7,
+  "height": 7,
+  "mirrors": 3,
+  "pieces": [
+    {"type": "Emitter", "x": 0, "y": 3, "dir": "Right"},
+    {"type": "Emitter", "x": 0, "y": 1, "dir": "Right"},
+    {"type": "Splitter", "x": 3, "y": 1, "orientation": "Slash"},
+    {"type": "Mirror", "x": 0, "y": 5, "orientation": "Backslash"},
+    {"type": "Wall", "x": 1, "y": 6},
+    {"type": "Receiver", "x": 0, "y": 6},
+    {"type": "Receiver", "x": 5, "y": 6},
+    {"type": "Receiver", "x": 6, "y": 4}
+  ],
+  "solution": [
+    {"type": "Mirror", "x": 3, "y": 5, "orientation": "Backslash"},
+    {"type": "Mirror", "x": 5, "y": 1, "orientation": "Slash"},
+    {"type": "Mirror", "x": 6, "y": 3, "orientation": "Slash"}
+  ]
+}

@@ -94,6 +94,7 @@ namespace Refract.Core
                 case PieceType.Emitter: return Piece.Emitter(pos, ParseEnum<Direction>(p.dir));
                 case PieceType.Wall: return Piece.Wall(pos);
                 case PieceType.Receiver: return Piece.Receiver(pos);
+                case PieceType.Splitter: return Piece.Splitter(pos, ParseEnum<MirrorOrientation>(p.orientation));
                 default: return Piece.Mirror(pos, ParseEnum<MirrorOrientation>(p.orientation), isFixed: true);
             }
         }
@@ -150,8 +151,8 @@ namespace Refract.Core
                     if (!LevelLoader.IsValidEnum<Direction>(p.dir)) errors.Add($"광원 방향 오류 '{p.dir}' at {pos}");
                 }
                 if (type == PieceType.Receiver) receivers++;
-                if (type == PieceType.Mirror && !LevelLoader.IsValidEnum<MirrorOrientation>(p.orientation))
-                    errors.Add($"거울 방향 오류 '{p.orientation}' at {pos}");
+                if ((type == PieceType.Mirror || type == PieceType.Splitter) && !LevelLoader.IsValidEnum<MirrorOrientation>(p.orientation))
+                    errors.Add($"{type} 방향 오류 '{p.orientation}' at {pos}");
             }
 
             if (emitters == 0) errors.Add("광원(Emitter)이 하나 이상 필요합니다.");

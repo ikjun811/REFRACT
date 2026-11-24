@@ -1,0 +1,29 @@
+{
+  "id": "L06",
+  "name": "Corridor",
+  "width": 6,
+  "height": 6,
+  "mirrors": 4,
+  "pieces": [
+    {"type": "Emitter", "x": 0, "y": 3, "dir": "Right"},
+    {"type": "Wall", "x": 0, "y": 5},
+    {"type": "Wall", "x": 1, "y": 5},
+    {"type": "Wall", "x": 2, "y": 5},
+    {"type": "Wall", "x": 3, "y": 5},
+    {"type": "Wall", "x": 3, "y": 4},
+    {"type": "Wall", "x": 5, "y": 4},
+    {"type": "Wall", "x": 3, "y": 3},
+    {"type": "Wall", "x": 1, "y": 2},
+    {"type": "Wall", "x": 1, "y": 1},
+    {"type": "Wall", "x": 2, "y": 1},
+    {"type": "Wall", "x": 3, "y": 1},
+    {"type": "Wall", "x": 4, "y": 1},
+    {"type": "Receiver", "x": 5, "y": 5}
+  ],
+  "solution": [
+    {"type": "Mirror", "x": 2, "y": 2, "orientation": "Backslash"},
+    {"type": "Mirror", "x": 2, "y": 3, "orientation": "Backslash"},
+    {"type": "Mirror", "x": 4, "y": 2, "orientation": "Slash"},
+    {"type": "Mirror", "x": 4, "y": 5, "orientation": "Slash"}
+  ]
+}

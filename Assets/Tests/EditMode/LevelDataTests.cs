@@ -34,8 +34,9 @@ namespace Refract.Tests
 
         private static IEnumerable<TestCaseData> LevelFiles()
         {
+            // {m} = 테스트 메서드 이름 → 결과 화면에 "StoredSolution_ClearsLevel(L03)" 처럼 표시된다
             foreach (var path in Directory.GetFiles(LevelsDir, "*.json"))
-                yield return new TestCaseData(path).SetName("Level_" + Path.GetFileNameWithoutExtension(path));
+                yield return new TestCaseData(path).SetName("{m}(" + Path.GetFileNameWithoutExtension(path) + ")");
         }
 
         private static LevelData Load(string path) => LevelLoader.Parse(File.ReadAllText(path));

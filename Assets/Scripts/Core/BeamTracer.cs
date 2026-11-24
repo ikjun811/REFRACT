@@ -6,11 +6,12 @@ namespace Refract.Core
     /// <summary>빔이 멈춘 이유.</summary>
     public enum BeamEnd { ExitedBoard, HitWall, HitReceiver, HitEmitter, LoopDetected }
 
-    /// <summary>광원 하나에서 나온 빔의 경로.</summary>
+    /// <summary>빔 한 가닥의 경로. 광원에서 시작하거나, 분산기에서 갈라져 나온 가지.</summary>
     public sealed class BeamPath
     {
+        /// <summary>시작 칸 (광원 또는 분산기 위치).</summary>
         public GridPos Origin { get; }
-        /// <summary>빔이 지나간 칸 목록(광원 칸 제외, 멈춘 칸 포함).</summary>
+        /// <summary>빔이 지나간 칸 목록(시작 칸 제외, 멈춘 칸 포함).</summary>
         public List<GridPos> Cells { get; } = new List<GridPos>();
         public BeamEnd End { get; internal set; }
         /// <summary>마지막으로 진행하던 방향 (보드 밖으로 나간 빔을 그릴 때 사용).</summary>
@@ -59,6 +60,9 @@ namespace Refract.Core
             }
         }
 
+        /// <summary>분산기로 갈라지는 빔 가지 수 상한 (안전장치).</summary>
+        public const int MaxBranchesPerEmitter = 64;
+
         public static TraceResult Trace(Board board)
         {
             var result = new TraceResult
@@ -71,19 +75,36 @@ namespace Refract.Core
                 .OrderBy(p => p.Position.Y).ThenBy(p => p.Position.X); // 결과 순서를 항상 같게
 
             foreach (var emitter in emitters)
-                result.Beams.Add(TraceOne(board, emitter, result.LitReceivers));
+                TraceEmitter(board, emitter, result);
 
             return result;
         }
 
-        private static BeamPath TraceOne(Board board, Piece emitter, HashSet<GridPos> litReceivers)
+        /// <summary>
+        /// 광원 하나에서 나온 빔을 추적한다.
+        /// 분산기를 만나면 반사 빔을 새 가지로 큐에 넣고, 현재 빔은 직진을 계속한다.
+        /// </summary>
+        private static void TraceEmitter(Board board, Piece emitter, TraceResult result)
         {
-            var path = new BeamPath(emitter.Position);
-            var pos = emitter.Position;
-            var dir = emitter.Facing;
-
-            // 같은 칸을 같은 방향으로 다시 지나면 무한 루프 → 중단
+            // 같은 칸을 같은 방향으로 다시 지나면 무한 루프 → 그 가지는 중단
             var visited = new HashSet<(GridPos, Direction)>();
+            var branches = new Queue<(GridPos origin, Direction dir)>();
+            branches.Enqueue((emitter.Position, emitter.Facing));
+            var branchCount = 0;
+
+            while (branches.Count > 0 && branchCount < MaxBranchesPerEmitter)
+            {
+                var (origin, startDir) = branches.Dequeue();
+                branchCount++;
+                result.Beams.Add(TraceBranch(board, origin, startDir, visited, branches, result.LitReceivers));
+            }
+        }
+
+        private static BeamPath TraceBranch(Board board, GridPos origin, Direction dir,
+            HashSet<(GridPos, Direction)> visited, Queue<(GridPos, Direction)> branches, HashSet<GridPos> litReceivers)
+        {
+            var path = new BeamPath(origin);
+            var pos = origin;
 
             while (true)
             {
@@ -122,6 +143,10 @@ namespace Refract.Core
                         return path;
                     case PieceType.Mirror:
                         dir = Reflect(dir, piece.Orientation);
+                        break;
+                    case PieceType.Splitter:
+                        // 반사 빔은 새 가지로, 현재 빔은 그대로 직진
+                        branches.Enqueue((pos, Reflect(dir, piece.Orientation)));
                         break;
                 }
             }

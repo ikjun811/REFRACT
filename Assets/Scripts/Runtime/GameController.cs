@@ -37,6 +37,7 @@ namespace Refract.Runtime
         private static readonly Color PlayerMirrorColor = new Color(0.45f, 0.85f, 1f);
         private static readonly Color FixedMirrorColor = new Color(0.85f, 0.85f, 0.90f);
         private static readonly Color BeamColor = new Color(1f, 0.25f, 0.30f);
+        private static readonly Color SplitterColor = new Color(0.80f, 0.45f, 1f, 0.75f);
 
         private const float BoardPixels = 720f;
 
@@ -165,6 +166,14 @@ namespace Refract.Runtime
                         // UI 좌표는 y가 위로 증가 → +45° = '/', -45° = '\'
                         mirror.localRotation = Quaternion.Euler(0, 0, piece.Orientation == MirrorOrientation.Slash ? 45f : -45f);
                         break;
+
+                    case PieceType.Splitter:
+                        // 반투명 보라색 판 + 테두리 사각형으로 일반 거울과 구분
+                        Place(CreateImage("SplitterFrame", _pieceLayer, new Color(0.80f, 0.45f, 1f, 0.18f)).rectTransform, center, Vector2.one * (_cellSize * 0.8f));
+                        var splitter = CreateImage("Splitter", _pieceLayer, SplitterColor).rectTransform;
+                        Place(splitter, center, new Vector2(_cellSize * 0.95f, _cellSize * 0.07f));
+                        splitter.localRotation = Quaternion.Euler(0, 0, piece.Orientation == MirrorOrientation.Slash ? 45f : -45f);
+                        break;
                 }
             }
         }
@@ -221,7 +230,7 @@ namespace Refract.Runtime
             _levelLabel = CreateText("Level", root, "", 36, TextAnchor.UpperCenter, new Vector2(0.5f, 1), new Vector2(0, -50), Color.white);
             _statusLabel = CreateText("Status", root, "", 56, TextAnchor.LowerCenter, new Vector2(0.5f, 0), new Vector2(0, 50), ReceiverOn);
             _mirrorLabel = CreateText("Mirrors", root, "", 32, TextAnchor.UpperLeft, new Vector2(0, 0.5f), new Vector2(60, 120), PlayerMirrorColor);
-            CreateText("Help", root, "CLICK A CELL\nplace /  ->  rotate \\  ->  remove\n\nLight every receiver.", 24,
+            CreateText("Help", root, "CLICK A CELL\nplace /  ->  rotate \\  ->  remove\n\nPURPLE = SPLITTER\n(beam goes straight AND reflects)\n\nLight every receiver.", 24,
                 TextAnchor.UpperLeft, new Vector2(0, 0.5f), new Vector2(60, 60), new Color(0.6f, 0.65f, 0.75f));
             CreateText("Version", root, $"v{Application.version}", 22, TextAnchor.LowerRight, new Vector2(1, 0), new Vector2(-30, 20), new Color(0.5f, 0.55f, 0.65f));
 

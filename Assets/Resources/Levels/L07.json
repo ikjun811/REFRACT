@@ -1,0 +1,19 @@
+{
+  "id": "L07",
+  "name": "Fork",
+  "width": 7,
+  "height": 7,
+  "mirrors": 3,
+  "pieces": [
+    {"type": "Emitter", "x": 0, "y": 6, "dir": "Down"},
+    {"type": "Splitter", "x": 0, "y": 3, "orientation": "Backslash"},
+    {"type": "Wall", "x": 4, "y": 3},
+    {"type": "Receiver", "x": 6, "y": 5},
+    {"type": "Receiver", "x": 6, "y": 0}
+  ],
+  "solution": [
+    {"type": "Mirror", "x": 0, "y": 0, "orientation": "Backslash"},
+    {"type": "Mirror", "x": 1, "y": 3, "orientation": "Slash"},
+    {"type": "Mirror", "x": 1, "y": 5, "orientation": "Slash"}
+  ]
+}

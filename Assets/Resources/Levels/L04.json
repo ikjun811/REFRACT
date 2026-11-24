@@ -1,0 +1,18 @@
+{
+  "id": "L04",
+  "name": "Bounce",
+  "width": 6,
+  "height": 6,
+  "mirrors": 2,
+  "pieces": [
+    {"type": "Emitter", "x": 0, "y": 2, "dir": "Right"},
+    {"type": "Mirror", "x": 3, "y": 2, "orientation": "Backslash"},
+    {"type": "Wall", "x": 2, "y": 4},
+    {"type": "Wall", "x": 1, "y": 3},
+    {"type": "Receiver", "x": 5, "y": 5}
+  ],
+  "solution": [
+    {"type": "Mirror", "x": 3, "y": 0, "orientation": "Backslash"},
+    {"type": "Mirror", "x": 5, "y": 0, "orientation": "Slash"}
+  ]
+}
