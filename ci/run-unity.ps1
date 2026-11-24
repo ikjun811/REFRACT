@@ -4,6 +4,7 @@
   Usage (from the repository root):
     powershell -File ci/run-unity.ps1 -Mode Tests
     powershell -File ci/run-unity.ps1 -Mode BuildWebGL
+    powershell -File ci/run-unity.ps1 -Mode BuildWindows
 
   Why a script: Unity.exe is a GUI-subsystem program, so PowerShell does not wait for it
   when it is called directly. Start-Process -Wait makes the CI step wait and lets us read
@@ -14,7 +15,7 @@
 #>
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Tests', 'BuildWebGL')]
+    [ValidateSet('Tests', 'BuildWebGL', 'BuildWindows')]
     [string]$Mode
 )
 
@@ -46,7 +47,7 @@ if ($Mode -eq 'Tests') {
     $resultsFile = Join-Path $outDir 'editmode-results.xml'
     $unityArgs += @('-runTests', '-testPlatform', 'EditMode', '-testResults', "`"$resultsFile`"")
 } else {
-    $unityArgs += @('-executeMethod', 'BuildScript.BuildWebGL')
+    $unityArgs += @('-executeMethod', "BuildScript.$Mode")
 }
 
 # ---------- run Unity and wait ----------
@@ -88,8 +89,8 @@ if ($Mode -eq 'Tests') {
     if ([int]$run.failed -gt 0) { exit 1 }
 }
 
-if ($Mode -eq 'BuildWebGL' -and $exitCode -eq 0 -and $env:GITHUB_STEP_SUMMARY) {
-    "## WebGL build`n`nBuilt in $elapsed s." | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+if ($Mode -ne 'Tests' -and $exitCode -eq 0 -and $env:GITHUB_STEP_SUMMARY) {
+    "## $Mode`n`nBuilt in $elapsed s." | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
 }
 
 exit $exitCode

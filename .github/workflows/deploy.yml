@@ -1,0 +1,134 @@
+# REFRACT CD — itch.io 배포
+#
+#  버전 태그(v0.3.0 등)를 push하거나 Actions 탭에서 수동 실행하면:
+#   ⚡ logic-tests   : 클라우드에서 로직 테스트
+#   🎮 unity-tests   : 내 PC(self-hosted)에서 Unity 테스트
+#   📦 build-windows : 내 PC에서 Windows 빌드 → artifact
+#   🚀 deploy-itch   : 클라우드에서 butler로 itch.io 'windows' 채널에 업로드
+#
+#  필요한 설정 (저장소 Settings → Secrets and variables → Actions)
+#   Secrets   BUTLER_API_KEY : itch.io API 키
+#   Variables ITCH_TARGET    : <itch 계정>/<프로젝트>  예) ikjun811/refract
+#  둘 중 하나라도 없으면 업로드 단계만 건너뛰고 나머지는 그대로 실행된다.
+name: Deploy
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '배포 버전 (수동 실행 시)'
+        required: true
+        default: '0.3.0-test'
+
+permissions:
+  contents: read
+
+# 배포가 겹치지 않도록 한 번에 하나씩만 실행
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  # 태그 push면 태그 이름(v0.3.0), 수동 실행이면 입력한 값
+  VERSION: ${{ github.ref_type == 'tag' && github.ref_name || inputs.version }}
+
+jobs:
+  logic-tests:
+    name: Logic Tests (dotnet)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.x'
+      - name: Run tests
+        run: dotnet test Tests.Dotnet/Refract.Tests.Dotnet.csproj --logger "console;verbosity=normal"
+
+  unity-tests:
+    name: Unity EditMode Tests (self-hosted)
+    runs-on: [self-hosted, Windows]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          lfs: true
+          clean: false
+      - name: Run EditMode tests
+        shell: cmd
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File ci\run-unity.ps1 -Mode Tests
+
+  build-windows:
+    name: Windows Build (self-hosted)
+    needs: [logic-tests, unity-tests]
+    runs-on: [self-hosted, Windows]
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          lfs: true
+          clean: false
+      - name: Build Windows
+        shell: cmd
+        env:
+          BUILD_OUTPUT: Builds/Windows
+          BUILD_VERSION: ${{ env.VERSION }}   # 게임 화면 오른쪽 아래 버전 표시에 들어간다
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File ci\run-unity.ps1 -Mode BuildWindows
+      - name: Upload build
+        uses: actions/upload-artifact@v6
+        with:
+          name: REFRACT-Windows-${{ env.VERSION }}
+          path: Builds/Windows
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: unity-build-log-windows
+          path: ci-output
+          if-no-files-found: ignore
+
+  deploy-itch:
+    name: Deploy to itch.io
+    needs: build-windows
+    runs-on: ubuntu-latest   # 업로드에는 Unity가 필요 없으므로 클라우드에서 실행
+    env:
+      BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}   # butler가 이 환경 변수로 로그인한다
+      ITCH_TARGET: ${{ vars.ITCH_TARGET }}
+    steps:
+      - name: Download build
+        uses: actions/download-artifact@v5
+        with:
+          name: REFRACT-Windows-${{ env.VERSION }}
+          path: build
+
+      - name: Skip upload (settings missing)
+        if: env.BUTLER_API_KEY == '' || env.ITCH_TARGET == ''
+        run: |
+          echo "::notice::BUTLER_API_KEY 또는 ITCH_TARGET 이 없어 업로드를 건너뜁니다."
+          echo "## 🚀 itch.io 배포 건너뜀" >> "$GITHUB_STEP_SUMMARY"
+          echo "BUTLER_API_KEY(Secret) 또는 ITCH_TARGET(Variable)이 설정되지 않았습니다." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Install butler
+        if: env.BUTLER_API_KEY != '' && env.ITCH_TARGET != ''
+        run: |
+          curl -sSL -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
+          unzip -q butler.zip -d butler-bin
+          chmod +x butler-bin/butler
+          ./butler-bin/butler -V
+
+      - name: Push to itch.io
+        if: env.BUTLER_API_KEY != '' && env.ITCH_TARGET != ''
+        run: |
+          ./butler-bin/butler push build "$ITCH_TARGET:windows" --userversion "$VERSION"
+          ./butler-bin/butler status "$ITCH_TARGET:windows" | tee status.txt
+          {
+            echo "## 🚀 itch.io 배포 완료"
+            echo ""
+            echo "- 대상 : \`$ITCH_TARGET:windows\`"
+            echo "- 버전 : \`$VERSION\`"
+            echo ""
+            echo '```'
+            cat status.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
