@@ -32,7 +32,9 @@ concurrency:
 
 env:
   # 태그 push면 태그 이름(v0.3.0), 수동 실행이면 입력한 값
-  VERSION: ${{ github.ref_type == 'tag' && github.ref_name || inputs.version }}
+  # 주의: 이름을 VERSION으로 하면 dotnet(MSBuild)이 환경 변수를 Version 속성으로 읽어
+  #       'v0.3.0'을 어셈블리 버전으로 쓰려다 빌드가 실패한다 → RELEASE_VERSION 사용
+  RELEASE_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || inputs.version }}
 
 jobs:
   logic-tests:
@@ -73,12 +75,12 @@ jobs:
         shell: cmd
         env:
           BUILD_OUTPUT: Builds/Windows
-          BUILD_VERSION: ${{ env.VERSION }}   # 게임 화면 오른쪽 아래 버전 표시에 들어간다
+          BUILD_VERSION: ${{ env.RELEASE_VERSION }}   # 게임 화면 오른쪽 아래 버전 표시에 들어간다
         run: powershell -NoProfile -ExecutionPolicy Bypass -File ci\run-unity.ps1 -Mode BuildWindows
       - name: Upload build
         uses: actions/upload-artifact@v6
         with:
-          name: REFRACT-Windows-${{ env.VERSION }}
+          name: REFRACT-Windows-${{ env.RELEASE_VERSION }}
           path: Builds/Windows
       - name: Upload build log
         if: always()
@@ -99,7 +101,7 @@ jobs:
       - name: Download build
         uses: actions/download-artifact@v5
         with:
-          name: REFRACT-Windows-${{ env.VERSION }}
+          name: REFRACT-Windows-${{ env.RELEASE_VERSION }}
           path: build
 
       - name: Skip upload (settings missing)
@@ -120,13 +122,13 @@ jobs:
       - name: Push to itch.io
         if: env.BUTLER_API_KEY != '' && env.ITCH_TARGET != ''
         run: |
-          ./butler-bin/butler push build "$ITCH_TARGET:windows" --userversion "$VERSION"
+          ./butler-bin/butler push build "$ITCH_TARGET:windows" --userversion "$RELEASE_VERSION"
           ./butler-bin/butler status "$ITCH_TARGET:windows" | tee status.txt
           {
             echo "## 🚀 itch.io 배포 완료"
             echo ""
             echo "- 대상 : \`$ITCH_TARGET:windows\`"
-            echo "- 버전 : \`$VERSION\`"
+            echo "- 버전 : \`$RELEASE_VERSION\`"
             echo ""
             echo '```'
             cat status.txt
