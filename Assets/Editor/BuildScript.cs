@@ -27,6 +27,11 @@ public static class BuildScript
         PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
         PlayerSettings.WebGL.decompressionFallback = true;
 
+        // WebAssembly 2023 대상: 구형 MVP 대상일 때 실행되는 wasm-opt 변환(--signext-lowering)에서
+        // Emscripten 최적화 도구가 Assertion 오류로 비정상 종료하는 문제가 있어 최신 표준으로 빌드한다.
+        // (Chrome 91+, Firefox 89+, Safari 16.4+ 지원 — Unity도 이 옵션을 권장)
+        PlayerSettings.WebGL.wasm2023 = true;
+
         var scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray();
         if (scenes.Length == 0) scenes = new[] { "Assets/Scenes/SampleScene.unity" };
 
