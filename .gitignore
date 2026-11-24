@@ -117,3 +117,4 @@ InitTestScene*.unity*
 !/Tests.Dotnet/*.csproj
 /Tests.Dotnet/bin/
 /Tests.Dotnet/obj/
+/ci-output/
